@@ -104,4 +104,7 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  char exit_msg[32];           // Assignment1, Q3 
+  int affinity_mask;           // Assignment1, Q5
+  int effective_affinity_mask; // Assignment1, Q6
 };

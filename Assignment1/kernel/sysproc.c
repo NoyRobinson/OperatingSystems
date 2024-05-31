@@ -10,8 +10,22 @@ uint64
 sys_exit(void)
 {
   int n;
+  char exit_msg[32];
   argint(0, &n);
-  exit(n);
+  argstr(1, exit_msg, sizeof(exit_msg));
+
+ //Assignment1 Q3
+
+  uint64 addr;
+  argaddr(1, &addr);
+  if(addr == 0)
+    exit(n, "No exit message");
+  else{
+     exit_msg[sizeof(exit_msg) - 1] = '\0';
+     exit(n, exit_msg);
+  }
+  ///////////////
+
   return 0;  // not reached
 }
 
@@ -32,7 +46,11 @@ sys_wait(void)
 {
   uint64 p;
   argaddr(0, &p);
-  return wait(p);
+
+  uint64 exit_msg;
+  argaddr(1, &exit_msg);
+
+  return wait(p, exit_msg);
 }
 
 uint64
@@ -89,3 +107,25 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_memsize(void)
+{
+  uint64 proc_size_memory;
+  proc_size_memory = myproc()->sz;
+  return proc_size_memory;
+}
+
+//Assignment1 Q5
+
+uint64
+sys_set_affinity_mask(void)
+{
+  int mask;
+  struct proc *p = myproc();
+  argint(0, &mask);
+  p->affinity_mask = mask;
+  p->effective_affinity_mask = mask;
+  return 0;
+}
+////////////////////

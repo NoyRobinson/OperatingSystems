@@ -31,6 +31,9 @@ exec(char *path, char **argv)
   pagetable_t pagetable = 0, oldpagetable;
   struct proc *p = myproc();
 
+  p->affinity_mask = 0; //Assignment1 Q5
+  p->effective_affinity_mask = 0; //Assignment1 Q6
+
   begin_op();
 
   if((ip = namei(path)) == 0){

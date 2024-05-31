@@ -55,6 +55,8 @@ procinit(void)
       initlock(&p->lock, "proc");
       p->state = UNUSED;
       p->kstack = KSTACK((int) (p - proc));
+      p->affinity_mask = 0; //Assignment1 Q5
+      p->effective_affinity_mask = 0; //Assignment1 Q6
   }
 }
 
@@ -113,6 +115,8 @@ allocproc(void)
 
   for(p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
+    p->affinity_mask = 0; //Assignment1 Q5
+    p->effective_affinity_mask = 0; //Assignment1 Q6
     if(p->state == UNUSED) {
       goto found;
     } else {
@@ -169,6 +173,8 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+  p->affinity_mask = 0; //Assignment1 Q5
+  p->effective_affinity_mask = 0; //Assignment1 Q6
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -294,7 +300,10 @@ fork(void)
     release(&np->lock);
     return -1;
   }
+
   np->sz = p->sz;
+  np->affinity_mask = p->affinity_mask; //Assignment1 Q5
+  np->effective_affinity_mask = p->effective_affinity_mask; //Assingment1 Q6
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
@@ -344,7 +353,7 @@ reparent(struct proc *p)
 // An exited process remains in the zombie state
 // until its parent calls wait().
 void
-exit(int status)
+exit(int status, char* exit_msg)
 {
   struct proc *p = myproc();
 
@@ -375,6 +384,11 @@ exit(int status)
   
   acquire(&p->lock);
 
+  //Assignment1 Q3
+
+  strncpy(p->exit_msg, exit_msg, 32);
+  ///////////////////////////
+
   p->xstate = status;
   p->state = ZOMBIE;
 
@@ -388,7 +402,7 @@ exit(int status)
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
 int
-wait(uint64 addr)
+wait(uint64 addr, uint64 exit_msg)
 {
   struct proc *pp;
   int havekids, pid;
@@ -408,12 +422,21 @@ wait(uint64 addr)
         if(pp->state == ZOMBIE){
           // Found one.
           pid = pp->pid;
-          if(addr != 0 && copyout(p->pagetable, addr, (char *)&pp->xstate,
-                                  sizeof(pp->xstate)) < 0) {
+          if(addr != 0 && copyout(p->pagetable, addr, (char *)&pp->xstate, sizeof(pp->xstate)) < 0) {
             release(&pp->lock);
             release(&wait_lock);
             return -1;
           }
+
+          //Assignment1 Q3
+
+          if(exit_msg != 0 && copyout(p->pagetable, exit_msg, (char*)&pp->exit_msg, sizeof(pp->exit_msg)) < 0) {
+              release(&pp->lock);
+              release(&wait_lock);
+              return -1;
+          }
+          ////////////////////
+
           freeproc(pp);
           release(&pp->lock);
           release(&wait_lock);
@@ -446,6 +469,8 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
+
+  int curr_cpuId = cpuid(); //Assignment1 Q5
   
   c->proc = 0;
   for(;;){
@@ -454,12 +479,16 @@ scheduler(void)
 
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
+
+      if(p->state == RUNNABLE && (p->affinity_mask == 0 || p->effective_affinity_mask & (1 << curr_cpuId))) {
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
+
+        printf("Process Id: %d, CPU Id: %d\n", p->pid, curr_cpuId); //Assignment1 Q5
+
         swtch(&c->context, &p->context);
 
         // Process is done running for now.
@@ -484,6 +513,14 @@ sched(void)
   int intena;
   struct proc *p = myproc();
 
+  //Assignment1 Q6
+  
+  int curr_cpuId = cpuid();
+  p->effective_affinity_mask = (p->affinity_mask) & ~(1 << curr_cpuId);
+  if(p->effective_affinity_mask == 0)
+    p->effective_affinity_mask = p->affinity_mask;
+  /////////////////
+
   if(!holding(&p->lock))
     panic("sched p->lock");
   if(mycpu()->noff != 1)
@@ -503,6 +540,7 @@ void
 yield(void)
 {
   struct proc *p = myproc();
+
   acquire(&p->lock);
   p->state = RUNNABLE;
   sched();
@@ -621,6 +659,7 @@ killed(struct proc *p)
   release(&p->lock);
   return k;
 }
+
 
 // Copy to either a user address, or kernel address,
 // depending on usr_dst.
