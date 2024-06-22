@@ -69,9 +69,7 @@ chaninit(void)
   for(chan = chanArr; chan < &chanArr[NCHAN] ; chan++) {
       initlock(&chan->lock, "channel");
       chan->data = 0;
-      chan->available = 0;
-      chan->state = AVAILABLE;
-      chan->cd = 0;
+      chan->state = CHAN_FREE;
   }
 }
 ////////////////////////
@@ -366,16 +364,6 @@ exit(int status)
 {
   struct proc *p = myproc();
 
-  //Task 1
-  int pid = p->pid;
-  struct channel *chan;
-
-  for(chan = chanArr; chan < &chanArr[NCHAN]; chan++) {
-    if(chan->state == UNAVAILABLE && pid == chan->proc->pid)
-      channel_destroy(chan->cd);
-  }
-  ////////
-
   if(p == initproc)
     panic("init exiting");
 
@@ -407,6 +395,15 @@ exit(int status)
   p->state = ZOMBIE;
 
   release(&wait_lock);
+
+  //Task 1
+  for(int cd = 0; cd < NCHAN; cd++) {
+      struct channel *chan = &chanArr[cd];
+      if(chan->pid == p->pid){
+        channel_destroy(cd);
+      }
+  }
+  ////////
 
   // Jump into the scheduler, never to return.
   sched();
@@ -716,34 +713,21 @@ channel_create(void)
 {
   struct channel *chan;
   struct proc *p = myproc();
-  int index = 0;
 
-  for(chan = chanArr; chan < &chanArr[NCHAN]; chan++) {
+  for(int cd = 0; cd < NCHAN; cd++){
+    chan = &chanArr[cd];
     acquire(&chan->lock);
-    if(chan->state == AVAILABLE) {
-      goto found;
-    } else {
+    if(chan->state == CHAN_FREE){
+      chan->state = CHAN_EMPTY;
+      chan->pid = p->pid;
+      chan->data = 0;
       release(&chan->lock);
+      return cd;
     }
-    index++;
+    else
+      release(&chan->lock);
   }
-
-  if(index >= NCHAN){
-    release(&chan->lock);
-    return -1;
-  }
-  release(&chan->lock);
-  return index;
-
-  found:
-  chan->available = 0;
-  chan->state = UNAVAILABLE;
-  chan->proc = p;
-  chan->cd = index;
-
-  release(&chan->lock);
-
-  return index;
+  return -1;
 }
 
 int
@@ -754,34 +738,21 @@ channel_put(int cd, int data)
   
   struct channel* chan = &chanArr[cd];
   acquire(&chan->lock);
-  if(chan->state == AVAILABLE){
-    release(&chan->lock);
-    return -1;
-  }
-  else{
-    if(chan->available == 0){
+  while(1){
+    if(chan->state == CHAN_FULL)
+      sleep(chan, &chan->lock);
+    else if(chan->state == CHAN_EMPTY){
       chan->data = data;
-      chan->available = 1;
+      chan->state = CHAN_FULL;
       wakeup(chan);
       release(&chan->lock);
       return 0;
     }
-    else{
-      sleep(chan, &chan->lock);
-      if(chan->state == AVAILABLE){
-        release(&chan->lock);
-        return -1;
-      }
-      if(chan->available == 0){
-        chan->data = data;
-        chan->available = 1;
-        release(&chan->lock);
-        return 0;
-      }
+    else { //chan->state == CHAN_FREE
+      release(&chan->lock);
+      return -1;
     }
   }
-  release(&chan->lock);
-  return -1;
 }
 
 int
@@ -789,45 +760,27 @@ channel_take(int cd, int* data)
 {
   if(cd >= NCHAN || cd < 0)
     return -1;
-
+  
   struct channel* chan = &chanArr[cd];
   acquire(&chan->lock);
-  if(chan->state == AVAILABLE || data == 0){
-    release(&chan->lock);
-    return -1;
-  }
-  else{
-    if(chan->available == 1){
-      if(data != 0 && copyout(chan->proc->pagetable, (uint64)data, (char*)&chan->data, sizeof(chan->data)) < 0){
+  while(1){
+    if(chan->state == CHAN_EMPTY)
+      sleep(chan, &chan->lock);
+    else if(chan->state == CHAN_FULL){
+      if(data != 0 && copyout(myproc()->pagetable, (uint64)data, (char*)&chan->data, sizeof(chan->data)) < 0){
         release(&chan->lock);
         return -1;
       }
-      chan->available = 0;
+      chan->state = CHAN_EMPTY;
       wakeup(chan);
       release(&chan->lock);
       return 0;
     }
-    else{
-      sleep(chan, &chan->lock);
-      if(chan->state == AVAILABLE){
-          release(&chan->lock);
-          return -1;
-      }
-
-      if(chan->available == 1) {
-        if(data != 0 && copyout(chan->proc->pagetable, (uint64)data, (char*)&chan->data, sizeof(chan->data)) < 0){
-          release(&chan->lock);
-          return -1;
-        }
-        chan->available = 0;
-        wakeup(chan);
-        release(&chan->lock);
-        return 0;
-      }
+    else { //chan->state == CHAN_FREE
+      release(&chan->lock);
+      return -1;
     }
-  }
-  release(&chan->lock);
-  return -1;
+  } 
 }
 
 int
@@ -837,15 +790,15 @@ channel_destroy(int cd)
     return -1;
   
   struct channel* chan = &chanArr[cd];
-
-  acquire(&chan->lock);
-  chan->data = 0;
-  chan->available = 0;
-  chan->state = AVAILABLE;
-  chan->cd = 0;
-
-  wakeup(chan);
-  release(&chan->lock);
-  return 0;
+  if(chan->state != CHAN_FREE){
+    acquire(&chan->lock);
+    chan->data = 0;
+    chan->state = CHAN_FREE;
+    printf("Pid: %d\n", chan->pid);
+    wakeup(chan);
+    release(&chan->lock);
+    return 0;
+  }
+  return -1;
 }
 //////////////////////

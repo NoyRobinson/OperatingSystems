@@ -80,7 +80,7 @@ struct trapframe {
 };
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
-enum chanstate { UNAVAILABLE, AVAILABLE }; //Task1
+enum chanstate { CHAN_FREE, CHAN_EMPTY, CHAN_FULL }; //Task1
 
 // Per-process state
 struct proc {
@@ -110,11 +110,8 @@ struct proc {
 //task 1
 struct channel {
   struct spinlock lock;
-  
-  struct proc *proc;          // The process that created the channel
+  int pid;                    // The process that created the channel
   int data;                   // store data item
-  int available;              // data item available: 0-unavailable item, 1-availbale item to take
   enum chanstate state;       // channel state- available= can create new channel, unavailable= can't create new channel
-  int cd; 
 };
 /////////////////////////////////

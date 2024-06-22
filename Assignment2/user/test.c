@@ -26,6 +26,7 @@ main(int argc, char *argv[])
             printf("Failed to take data from channel\n");
             exit(1);
         }
+        printf("took %d\n", data);
         data = channel_take(cd, &data); // 43
         // Handle error
         data = channel_take(cd, &data); // Sleep until child destroys channel
