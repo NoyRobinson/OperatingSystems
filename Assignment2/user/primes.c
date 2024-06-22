@@ -49,7 +49,6 @@ main(int argc, char *argv[])
                 while(channel_take(generator_cd, &data) == 0){
                     if(isPrime(data) == 1){
                         if(channel_put(checker_cd, data) < 0){ //channel destroyed
-                            printf("Checker %d shutting down\n", i);
                             channel_destroy(generator_cd);
                             exit(0);
                         }
@@ -69,14 +68,18 @@ main(int argc, char *argv[])
                 printf("The number %d is a prime number.\n", toPrint);
                 counter++;
             }
-            printf("Printer shutting down\n");
             channel_destroy(checker_cd);
             exit(0);
         }
 
-        //wait for child processes (checker,printer) to exit
-        for (int i = 0; i < checkers_num + 1; i++) {
-            wait(0);
+        //wait for child processes (checker,printer,generator) to exit
+        for (int i = 0; i < checkers_num + 2; i++) {
+            if(i == 0)
+                printf("Printer with pid %d shutting down\n", wait(0));
+            else if (i != checkers_num + 1)
+                printf("Checker %d with pid %d shutting down\n", i, wait(0));
+            else
+                printf("Generator with pid %d shutting down\n", wait(0));
         }
 
         char ans[3];
@@ -88,6 +91,5 @@ main(int argc, char *argv[])
         if(ans[0] != 'y')
             break;
     }
-    printf("Generator shutting down\n");
     exit(0);
 }

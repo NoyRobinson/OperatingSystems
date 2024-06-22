@@ -794,7 +794,6 @@ channel_destroy(int cd)
     acquire(&chan->lock);
     chan->data = 0;
     chan->state = CHAN_FREE;
-    printf("Pid: %d\n", chan->pid);
     wakeup(chan);
     release(&chan->lock);
     return 0;
