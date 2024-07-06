@@ -89,3 +89,17 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+//implement
+uint64
+sys_map_shared_pages(void)
+{
+  return 0;
+}
+
+uint64
+sys_unmap_shared_pages(void)
+{
+  return 0;
+}
+///////////////

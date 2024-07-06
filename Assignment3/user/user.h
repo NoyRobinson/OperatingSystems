@@ -1,5 +1,6 @@
 struct stat;
 struct crypto_op;
+struct proc;
 
 // system calls
 int fork(void);
@@ -26,6 +27,8 @@ int uptime(void);
 int crypto_op(struct crypto_op*, int);
 int take_shared_memory_request(void**, uint64*);
 int remove_shared_memory_request(void*, uint64);
+uint64 map_shared_pages(struct proc*, struct proc*, uint64, uint64);
+uint64 unmap_shared_pages(struct proc*, uint64, uint64);
 
 // ulib.c
 int stat(const char*, struct stat*);
