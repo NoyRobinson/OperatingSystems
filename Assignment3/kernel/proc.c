@@ -689,11 +689,26 @@ procdump(void)
   }
 }
 
+// Assignment 3
+struct proc*
+find_proc(int pid)
+{
+  struct proc* p;
+  for(p = proc; p < &proc[NPROC]; p++){
+    if (p->pid == pid)
+      return p;
+  }
+  return 0;
+}
 
 // implement
 uint64 
 map_shared_pages(struct proc* src_proc,struct proc* dst_proc,uint64 src_va, uint64 size){
-  return 0;
+  uint64 dst_va;
+
+
+  
+  return dst_va;
 }
 
 uint64 

@@ -108,6 +108,9 @@ void            yield(void);
 int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
+struct proc*    find_proc(int);                                                     // Assignment 3
+uint64          map_shared_pages(struct proc*, struct proc*, uint64, uint64);       // Assignment 3
+uint64          unmap_shared_pages(struct proc* p, uint64 addr, uint64 size);       // Assignment 3
 
 // shmem_queue.c
 void            shmem_queue_init(void);
