@@ -695,20 +695,33 @@ find_proc(int pid)
 {
   struct proc* p;
   for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
     if (p->pid == pid)
+      //release(&p->lock);
       return p;
   }
   return 0;
 }
 
-// implement
+// Assignment 3 - Task 1
 uint64 
 map_shared_pages(struct proc* src_proc,struct proc* dst_proc,uint64 src_va, uint64 size){
-  uint64 dst_va;
+  uint64 align_src = PGROUNDDOWN(src_va);
+  uint64 offset = src_va - align_src;
 
+  pte_t* pte = walk(src_proc->pagetable, align_src, 0); 
+  if(pte == 0 || (*pte & PTE_V) == 0 || (*pte & PTE_U) == 0)
+    return 0;
 
-  
-  return dst_va;
+  uint64 pa = PTE2PA(*pte);
+  uint64 dst_va = PGROUNDUP(dst_proc->sz);
+
+  if(mappages(dst_proc->pagetable, dst_va, size, pa, PTE_FLAGS(*pte) | PTE_S ) != 0)
+    return 0;
+
+  dst_proc->sz = dst_proc->sz + size;
+
+  return dst_va + offset;
 }
 
 uint64 
