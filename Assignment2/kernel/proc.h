@@ -112,6 +112,6 @@ struct channel {
   struct spinlock lock;
   int pid;                    // The process that created the channel
   int data;                   // store data item
-  enum chanstate state;       // channel state- available= can create new channel, unavailable= can't create new channel
+  enum chanstate state;       // channel state
 };
 /////////////////////////////////

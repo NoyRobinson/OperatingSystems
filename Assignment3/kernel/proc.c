@@ -695,9 +695,8 @@ find_proc(int pid)
 {
   struct proc* p;
   for(p = proc; p < &proc[NPROC]; p++){
-    acquire(&p->lock);
+    //acquire(&p->lock); // the lock will be released in take_shared_memory_request function in syscrypt.c
     if (p->pid == pid)
-      //release(&p->lock);
       return p;
   }
   return 0;
@@ -705,19 +704,19 @@ find_proc(int pid)
 
 // Assignment 3 - Task 1
 uint64 
-map_shared_pages(struct proc* src_proc,struct proc* dst_proc,uint64 src_va, uint64 size){
+map_shared_pages(struct proc* src_proc, struct proc* dst_proc, uint64 src_va, uint64 size){
   uint64 align_src = PGROUNDDOWN(src_va);
   uint64 offset = src_va - align_src;
 
   pte_t* pte = walk(src_proc->pagetable, align_src, 0); 
   if(pte == 0 || (*pte & PTE_V) == 0 || (*pte & PTE_U) == 0)
-    return 0;
+    return -1;
 
   uint64 pa = PTE2PA(*pte);
   uint64 dst_va = PGROUNDUP(dst_proc->sz);
 
   if(mappages(dst_proc->pagetable, dst_va, size, pa, PTE_FLAGS(*pte) | PTE_S ) != 0)
-    return 0;
+    return -1;
 
   dst_proc->sz = dst_proc->sz + size;
 
@@ -726,6 +725,16 @@ map_shared_pages(struct proc* src_proc,struct proc* dst_proc,uint64 src_va, uint
 
 uint64 
 unmap_shared_pages(struct proc* p, uint64 addr, uint64 size){
+  uint64 align_addr = PGROUNDDOWN(addr);
+
+  pte_t* pte = walk(p->pagetable, align_addr, 0); 
+  if(pte == 0 || (*pte & PTE_V) == 0 || (*pte & PTE_S) == 0)
+    return -1;
+  
+  uint64 npages = (size - align_addr) / PGSIZE;
+  uvmunmap(p->pagetable, align_addr, npages, 1);
+
+  p->sz = p->sz - (size - align_addr);
   return 0; 
 }
 //////////////
