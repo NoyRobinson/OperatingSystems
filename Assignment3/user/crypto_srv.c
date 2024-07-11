@@ -19,8 +19,10 @@ int main(void) {
   printf("crypto_srv: starting\n");
 
   // TODO: implement the cryptographic server here 
-  
+
   while(1){
+
+    take_shared_memory_request()
 
   }
 
