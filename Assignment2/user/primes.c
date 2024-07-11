@@ -23,7 +23,7 @@ main(int argc, char *argv[])
     int checkers_num;
     checkers_num = atoi(argv[1]);
     if(!(checkers_num > 0 && checkers_num <= 100)){
-        printf("invalid input- enter a number between 1 to 100\n");
+        printf("Invalid input- enter a number between 1 to 100\n");
         exit(0);
     }
 
