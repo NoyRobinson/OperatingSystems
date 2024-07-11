@@ -37,6 +37,7 @@ int main(void) {
       }
       else{ // request is valid
         uchar* data = &(request->payload[request->key_size]);
+
         int j = 0;
         for(int i = 0; i < request->data_size; i++){
           if(j >= request->key_size)
@@ -44,6 +45,7 @@ int main(void) {
           data[i] = data[i] ^ (request->payload[j]);
           j++;
         }
+        
         asm volatile ("fence rw,rw" : : : "memory");
         request->state = CRYPTO_OP_STATE_DONE;
 
