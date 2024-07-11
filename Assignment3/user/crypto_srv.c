@@ -18,7 +18,11 @@ int main(void) {
 
   printf("crypto_srv: starting\n");
 
-  // TODO: implement the cryptographic server here
+  // TODO: implement the cryptographic server here 
+  
+  while(1){
+
+  }
 
   exit(0);
 }

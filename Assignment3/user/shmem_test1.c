@@ -6,7 +6,7 @@ int
 main(int argc, char *argv[]){
     int parent_id = getpid();
     
-    void* memory = (char*)malloc(50);
+    void* memory = (char*)malloc(4096);
     if(memory == 0){
         printf("Memory allocation failed\n");
         return -1;
@@ -24,7 +24,7 @@ main(int argc, char *argv[]){
         wait(0);
     }
     else{ // child
-        uint64 dst_va = map_shared_pages(parent_id, (uint64)memory, 50);;
+        uint64 dst_va = map_shared_pages(parent_id, (uint64)memory, 4096);;
         if(dst_va == -1){
             printf("Mapping from parent to child failed\n");
             return -1;

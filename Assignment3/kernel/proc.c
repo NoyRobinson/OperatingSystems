@@ -726,15 +726,16 @@ map_shared_pages(struct proc* src_proc, struct proc* dst_proc, uint64 src_va, ui
 uint64 
 unmap_shared_pages(struct proc* p, uint64 addr, uint64 size){
   uint64 align_addr = PGROUNDDOWN(addr);
+  uint64 to_unmap = PGROUNDUP(addr + size);
 
   pte_t* pte = walk(p->pagetable, align_addr, 0); 
   if(pte == 0 || (*pte & PTE_V) == 0 || (*pte & PTE_S) == 0)
     return -1;
   
-  uint64 npages = (size - align_addr) / PGSIZE;
-  uvmunmap(p->pagetable, align_addr, npages, 1);
+  uint64 npages = (to_unmap - align_addr) / PGSIZE;
+  uvmunmap(p->pagetable, align_addr, npages, 0);
 
-  p->sz = p->sz - (size - align_addr);
+  p->sz = p->sz - (to_unmap - align_addr);
   return 0; 
 }
 //////////////
