@@ -31,7 +31,7 @@ int main (void) {
 
   crypto_op(op, op_size);
   
-  vola§tile enum crypto_op_state* op_state = &op->state;
+  volatile enum crypto_op_state* op_state = &op->state;
   while (*op_state == CRYPTO_OP_STATE_INIT)
     ;
 

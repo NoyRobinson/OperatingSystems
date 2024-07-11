@@ -20,10 +20,30 @@ int main(void) {
 
   // TODO: implement the cryptographic server here 
 
+  if(getpid() != 2)
+    exit(0);
+
   while(1){
+    void* va = (char*)malloc(4096);
+    uint64 size = 4096;
+    int take = take_shared_memory_request(&va, &size);
+    if(take == -1){
+      printf("Take shared memory request failed\n");
+      exit(0);
+    }
+    else { // take == 0
+      
 
-    take_shared_memory_request()
 
+
+
+
+      int remove = remove_shared_memory_request(&va, &size);
+      if(remove == -1){
+        printf("Remove shared memory request failed\n");
+        exit(0);
+      }
+    }
   }
 
   exit(0);

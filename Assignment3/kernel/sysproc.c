@@ -106,9 +106,11 @@ sys_map_shared_pages(void)
   argaddr(2, &size);
 
   struct proc* dst_proc = myproc();
-  if(dst_proc == 0)
+  if(dst_proc == 0){
+    release(&src_proc->lock); // lock aquired in find_proc and not released
     return -1;
-
+  }
+  release(&src_proc->lock); // lock aquired in find_proc and not released
   return map_shared_pages(src_proc, dst_proc, src_va, size);
 }
 
@@ -127,6 +129,7 @@ sys_unmap_shared_pages(void)
   uint64 size;
   argaddr(2, &size);
 
+  release(&p->lock); // lock aquired in find_proc and not released
   return unmap_shared_pages(p, addr, size);
 }
 //////////////////

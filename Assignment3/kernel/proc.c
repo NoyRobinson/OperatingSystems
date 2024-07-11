@@ -694,10 +694,13 @@ struct proc*
 find_proc(int pid)
 {
   struct proc* p;
-  for(p = proc; p < &proc[NPROC]; p++){
-    //acquire(&p->lock); // the lock will be released in take_shared_memory_request function in syscrypt.c
-    if (p->pid == pid)
+  for(p = proc; p < &proc[NPROC]; p++){ 
+    if (p->pid == pid){
+      acquire(&p->lock); 
+      // the lock will be released in sys_map_shared_pages, sys_unmap_shared_pages functions in sysproc.c for task 1
+      // the lock will be released in take_shared_memory_request function in syscrypt.c for task 2
       return p;
+    }
   }
   return 0;
 }
