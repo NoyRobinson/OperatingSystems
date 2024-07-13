@@ -36,18 +36,22 @@ int main(void) {
           request->state = CRYPTO_OP_STATE_ERROR;
       }
       else{ // request is valid
-        uchar* data = &(request->payload[request->key_size]);
-
-        int j = 0;
-        for(int i = 0; i < request->data_size; i++){
-          if(j >= request->key_size)
-            j = 0;
-          data[i] = data[i] ^ (request->payload[j]);
-          j++;
+        if(!(request->key_size != 0 && request->data_size != 0)){
+          printf("Unable to decrypt message - key size or data size equals to 0");
         }
-        
-        asm volatile ("fence rw,rw" : : : "memory");
-        request->state = CRYPTO_OP_STATE_DONE;
+        else{ // decryption
+          uchar* data = &(request->payload[request->key_size]);
+          int j = 0;
+          for(int i = 0; i < request->data_size; i++){
+            if(j >= request->key_size)
+              j = 0;
+            data[i] = data[i] ^ (request->payload[j]);
+            j++;
+          }
+          
+          asm volatile ("fence rw,rw" : : : "memory");
+          request->state = CRYPTO_OP_STATE_DONE;
+        }
 
         int remove = remove_shared_memory_request(va, size);
         if(remove == -1)
